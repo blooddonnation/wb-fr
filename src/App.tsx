@@ -30,7 +30,7 @@ function App() {
         <Route path="donors" element={<Donors />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="add-event" element={<AddEvent />} />
-        <Route path="add-center" element={<CentersMap />} />
+        <Route path="AddCenters" element={<CentersMap />} />
       </Route>
     </Routes>
   );

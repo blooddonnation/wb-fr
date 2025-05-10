@@ -1,4 +1,5 @@
 import React from 'react';
+import 'leaflet/dist/leaflet.css';
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
@@ -11,6 +12,7 @@ import Dashboard from './pages/admin/Dashboard';
 import Donors from './pages/admin/Donors';
 import Appointments from './pages/admin/Appointments';
 import AddEvent from './pages/admin/AddEvent';
+import  CentersMap from './pages/admin/AddCenters';
 
 function App() {
   return (
@@ -28,6 +30,7 @@ function App() {
         <Route path="donors" element={<Donors />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="add-event" element={<AddEvent />} />
+        <Route path="add-center" element={<CentersMap />} />
       </Route>
     </Routes>
   );

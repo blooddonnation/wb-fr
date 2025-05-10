@@ -7,9 +7,9 @@ import {
   PlusCircle, 
   LogOut, 
   X,
-  Droplet 
+  Droplet, 
+  MapPin
 } from 'lucide-react';
-
 interface AdminSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -23,6 +23,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'Donors', icon: <Users size={20} />, path: '/admin/donors' },
     { name: 'Appointments', icon: <Calendar size={20} />, path: '/admin/appointments' },
     { name: 'Add Event', icon: <PlusCircle size={20} />, path: '/admin/add-event' },
+    { name: 'Centers Map', icon: <MapPin size={20} />, path: '/admin/AddCenters' },
   ];
   
   const isActive = (path: string) => {

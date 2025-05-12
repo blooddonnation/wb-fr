@@ -13,9 +13,13 @@ interface GoogleUser {
   sub: string;
 }
 
+interface LoginResponse {
+  token: string;
+}
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,18 +31,18 @@ const Login: React.FC = () => {
       const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
       });
-      
+
       if (!userInfo.ok) {
         throw new Error('Failed to fetch user info');
       }
 
       const userData = await userInfo.json();
       setUser(userData);
-      
+
       localStorage.setItem('access_token', tokenResponse.access_token);
       localStorage.setItem('user', JSON.stringify(userData));
-      
-      navigate('/admin');
+
+      setUsername(userData.email.split('@')[0] || '');
     } catch (err) {
       setError('Failed to get user information');
       console.error('Google auth error:', err);
@@ -54,8 +58,7 @@ const Login: React.FC = () => {
     },
     flow: 'implicit',
     scope: 'email profile',
-    popup_type: 'window',
-    ux_mode: 'popup'
+   
   });
 
   const handleGoogleLoginClick = () => {
@@ -68,15 +71,29 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
-      if (email === 'admin@example.com' && password === 'password') {
-        navigate('/admin');
-      } else {
-        setError('Invalid email or password');
+      const response = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.toLowerCase(),
+          password: password,
+        }),
+      });
+
+      const data = await response.json() as LoginResponse;
+
+      if (!response.ok) {
+        throw new Error(data.token || 'Login failed');
       }
+
+      localStorage.setItem('jwt_token', data.token);
+      navigate('/admin');
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError( 'navigation to admin failed,Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -121,17 +138,17 @@ const Login: React.FC = () => {
                 </ol>
               </div>
             )}
-            
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                label="Email address"
-                autoComplete="email"
+                id="username"
+                name="username"
+                type="text"
+                label="Username"
+                autoComplete="username"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
 
               <Input
@@ -193,9 +210,9 @@ const Login: React.FC = () => {
                   className="w-full flex items-center justify-center"
                   onClick={handleGoogleLoginClick}
                 >
-                  <img 
-                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-                    alt="Google" 
+                  <img
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt="Google"
                     className="w-5 h-5 mr-2"
                   />
                   Continue with Google
@@ -205,9 +222,9 @@ const Login: React.FC = () => {
               {user && (
                 <div className="mt-6 text-center">
                   <div className="flex items-center justify-center mb-4">
-                    <img 
-                      src={user.picture} 
-                      alt={user.name} 
+                    <img
+                      src={user.picture}
+                      alt={user.name}
                       className="w-12 h-12 rounded-full"
                     />
                   </div>

@@ -16,11 +16,14 @@ interface GoogleUser {
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    username: '',
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
     bloodType: '',
+    dateOfBirth: '',
+    role: 'USER',
     location: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -28,33 +31,36 @@ const Register: React.FC = () => {
   const [submissionError, setSubmissionError] = useState('');
   const [user, setUser] = useState<GoogleUser | null>(null);
 
-  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown'];
+  const bloodTypes = [
+    'A_POSITIVE', 'A_NEGATIVE',
+    'B_POSITIVE', 'B_NEGATIVE',
+    'AB_POSITIVE', 'AB_NEGATIVE',
+    'O_POSITIVE', 'O_NEGATIVE',
+  ];
 
   const handleGoogleSuccess = async (tokenResponse: { access_token: string }) => {
     try {
       const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
       });
-      
+
       if (!userInfo.ok) {
         throw new Error('Failed to fetch user info');
       }
 
       const userData = await userInfo.json();
       setUser(userData);
-      
-      // Store the access token in localStorage
+
       localStorage.setItem('access_token', tokenResponse.access_token);
       localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Pre-fill the form with Google user data
+
       setFormData(prev => ({
         ...prev,
         fullName: userData.name || '',
         email: userData.email || '',
+        username: userData.email.split('@')[0] || '',
       }));
-      
-      // Clear any existing errors
+
       setErrors({});
     } catch (err) {
       setSubmissionError('Failed to get user information');
@@ -65,7 +71,7 @@ const Register: React.FC = () => {
   const googleLogin = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
     onError: () => setSubmissionError('Google login failed'),
-    flow: 'implicit'
+    flow: 'implicit',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -74,8 +80,7 @@ const Register: React.FC = () => {
       ...formData,
       [name]: value,
     });
-    
-    // Clear error when user types
+
     if (errors[name]) {
       setErrors({
         ...errors,
@@ -86,31 +91,40 @@ const Register: React.FC = () => {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    
+
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    }
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
     }
-    
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
-    
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
     if (!formData.bloodType) {
       newErrors.bloodType = 'Please select your blood type';
+    } else if (!bloodTypes.includes(formData.bloodType)) {
+      newErrors.bloodType = 'Invalid blood type';
     }
-    
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = 'Date of birth is required';
+    } else {
+      const date = new Date(formData.dateOfBirth);
+      if (isNaN(date.getTime())) {
+        newErrors.dateOfBirth = 'Invalid date format';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -118,21 +132,70 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmissionError('');
-    
+
     if (!validate()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Here you would have your actual registration logic
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Redirect to login page after successful registration
+      console.log('Fetching:', 'http://localhost:8080/auth/register'); // Debug log
+      const response = await fetch('http://localhost:8080/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Origin': 'http://localhost:5173',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'include',
+        mode: 'cors',
+        body: JSON.stringify({
+          username: formData.username.toLowerCase(),
+          password: formData.password,
+          email: formData.email,
+          fullName: formData.fullName,
+          bloodType: formData.bloodType,
+          dateOfBirth: formData.dateOfBirth,
+          role: formData.role.toUpperCase(),
+          location: formData.location || undefined,
+        }),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        let errorMessage;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || `Registration failed with status: ${response.status}`;
+          } else {
+            const text = await response.text();
+            errorMessage = text || `Registration failed with status: ${response.status}`;
+          }
+        } catch (err) {
+          errorMessage = `Registration failed with status: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      setSubmissionError('');
+      setErrors({});
       navigate('/login');
     } catch (err) {
-      setSubmissionError('Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        setSubmissionError('Unable to connect to the server. Please check if the server is running.');
+      } else if (err instanceof Error) {
+        setSubmissionError(err.message);
+      } else {
+        setSubmissionError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -163,8 +226,20 @@ const Register: React.FC = () => {
                 <span className="block sm:inline">{submissionError}</span>
               </div>
             )}
-            
+
             <form className="space-y-6" onSubmit={handleSubmit}>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                label="Username"
+                autoComplete="username"
+                required
+                value={formData.username}
+                onChange={handleChange}
+                error={errors.username}
+              />
+
               <Input
                 id="fullName"
                 name="fullName"
@@ -239,6 +314,17 @@ const Register: React.FC = () => {
                 </select>
                 {errors.bloodType && <p className="mt-1 text-sm text-error-500">{errors.bloodType}</p>}
               </div>
+
+              <Input
+                id="dateOfBirth"
+                name="dateOfBirth"
+                type="date"
+                label="Date of Birth"
+                required
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                error={errors.dateOfBirth}
+              />
 
               <Input
                 id="location"

@@ -28,7 +28,7 @@ const CentersMap = () => {
 
   const fetchHospitals = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/centers');
+      const response = await axios.get('http://localhost:8083/api/centers');
       if (response.data) {
         setHospitalMarkers(response.data);
       }
@@ -71,7 +71,7 @@ const CentersMap = () => {
     };
 
     try {
-      const response = await axios.post('http://localhost:8082/api/centers', newCenter);
+      const response = await axios.post('http://localhost:8083/api/centers', newCenter);
       setHospitalMarkers((prev) => [...prev, response.data]);
       setNewCenterLocation(null);
     } catch (error) {
@@ -83,7 +83,7 @@ const CentersMap = () => {
     if (!selectedCenter) return;
 
     try {
-      await axios.put(`http://localhost:8082/api/centers/${selectedCenter.id}`, selectedCenter);
+      await axios.put(`http://localhost:8083/api/centers/${selectedCenter.id}`, selectedCenter);
       setHospitalMarkers((prev) =>
         prev.map((c) => (c.id === selectedCenter.id ? selectedCenter : c))
       );
@@ -95,7 +95,7 @@ const CentersMap = () => {
 
   const handleDeleteCenter = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8082/api/centers/${id}`);
+      await axios.delete(`http://localhost:8083/api/centers/${id}`);
       setHospitalMarkers((prev) => prev.filter((c) => c.id !== id));
       setSelectedCenter(null);
     } catch (error) {

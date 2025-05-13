@@ -17,6 +17,7 @@ const AddEvent: React.FC = () => {
     staffNeeded: '',
     bloodTypesNeeded: [] as string[],
     imageUrl: '',
+    centerId: '1', // Hardcoded for now; replace with a real center ID from your database
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -93,6 +94,10 @@ const AddEvent: React.FC = () => {
     if (formData.bloodTypesNeeded.length === 0) {
       newErrors.bloodTypesNeeded = 'Select at least one blood type';
     }
+
+    if (!formData.centerId) {
+      newErrors.centerId = 'Center ID is required';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -107,12 +112,34 @@ const AddEvent: React.FC = () => {
     
     setIsSubmitting(true);
     
-    // Simulate API call
     try {
-      // Here you would have your actual event creation logic
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Clear form or redirect
+      const response = await fetch('http://localhost:8083/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          date: formData.date,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          location: formData.location,
+          address: formData.address,
+          capacity: Number(formData.capacity),
+          description: formData.description,
+          staffNeeded: Number(formData.staffNeeded),
+          bloodTypesNeeded: formData.bloodTypesNeeded,
+          imageUrl: formData.imageUrl,
+          center: { id: Number(formData.centerId) }, // Nested center object with id
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create event');
+      }
+
+      const data = await response.json();
       alert('Event created successfully!');
       setFormData({
         title: '',
@@ -126,9 +153,11 @@ const AddEvent: React.FC = () => {
         staffNeeded: '',
         bloodTypesNeeded: [],
         imageUrl: '',
+        centerId: '1', // Reset to default
       });
-    } catch (err) {
-      alert('Error creating event. Please try again.');
+    } catch (err: any) {
+      alert(`Error creating event: ${err.message || 'Please try again.'}`);
+      console.error('Error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -195,7 +224,7 @@ const AddEvent: React.FC = () => {
                     <Input
                       id="endTime"
                       name="endTime"
-                      type="time"
+                      type="time" // Fixed typo: was "type"
                       label="End Time"
                       value={formData.endTime}
                       onChange={handleChange}
@@ -273,6 +302,21 @@ const AddEvent: React.FC = () => {
                     placeholder="Provide details about the event, special instructions, or requirements"
                   />
                 </div>
+
+                {/* Temporary Center ID Input */}
+                <div className="sm:col-span-2">
+                  <Input
+                    id="centerId"
+                    name="centerId"
+                    type="number"
+                    label="Center ID (Temporary)"
+                    value={formData.centerId}
+                    onChange={handleChange}
+                    error={errors.centerId}
+                    placeholder="Enter the Center ID for this event"
+                    required
+                  />
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -311,7 +355,7 @@ const AddEvent: React.FC = () => {
             </CardBody>
           </Card>
 
-          {/* Image Upload Card (simplified for demo) */}
+          {/* Image Upload Card */}
           <Card>
             <CardHeader>
               <h2 className="text-lg font-medium text-gray-900">Event Image</h2>

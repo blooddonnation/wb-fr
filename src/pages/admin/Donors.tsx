@@ -1,38 +1,152 @@
-import React, { useState } from 'react';
-import { Search, Filter, Download, UserPlus, Eye, Edit, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Download, PlusCircle } from 'lucide-react';
 import Card, { CardHeader, CardBody } from '../../components/Card';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 
-const Donors: React.FC = () => {
+interface Donation {
+  donationId: string;
+  userId: string;
+  recipientType: string;
+  recipientId: string;
+  recipientName: string;
+  volume: number;
+  donationDate: string;
+  location: string;
+  pointsEarned: number;
+}
+
+const DonationHistory: React.FC = () => {
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [usernames, setUsernames] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedBloodType, setSelectedBloodType] = useState('');
+  const [selectedRecipientType, setSelectedRecipientType] = useState('');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newDonation, setNewDonation] = useState({
+    recipientType: 'bloodcenter',
+    recipientName: '',
+    volume: 0,
+    location: '',
+  });
+  const [loadingUsernames, setLoadingUsernames] = useState(false);
+  const [errorUsernames, setErrorUsernames] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Mock data for donors
-  const donors = [
-    { id: 1, name: 'John Smith', email: 'john.smith@example.com', bloodType: 'O+', lastDonation: '2025-06-01', location: 'Central Hospital', donations: 5 },
-    { id: 2, name: 'Emily Johnson', email: 'emily.j@example.com', bloodType: 'A-', lastDonation: '2025-05-15', location: 'Tech Plaza', donations: 3 },
-    { id: 3, name: 'Michael Wilson', email: 'michael.w@example.com', bloodType: 'B+', lastDonation: '2025-05-10', location: 'State University', donations: 8 },
-    { id: 4, name: 'Sarah Davis', email: 'sarah.d@example.com', bloodType: 'AB+', lastDonation: '2025-04-22', location: 'Community Center', donations: 2 },
-    { id: 5, name: 'David Martinez', email: 'david.m@example.com', bloodType: 'O-', lastDonation: '2025-04-05', location: 'Central Hospital', donations: 10 },
-    { id: 6, name: 'Jennifer Lee', email: 'jennifer.l@example.com', bloodType: 'A+', lastDonation: '2025-03-30', location: 'State University', donations: 4 },
-    { id: 7, name: 'Robert Chen', email: 'robert.c@example.com', bloodType: 'O+', lastDonation: '2025-03-25', location: 'Tech Plaza', donations: 7 },
-    { id: 8, name: 'Maria Garcia', email: 'maria.g@example.com', bloodType: 'AB-', lastDonation: '2025-03-20', location: 'Golden Years Center', donations: 6 },
-    { id: 9, name: 'James Johnson', email: 'james.j@example.com', bloodType: 'B-', lastDonation: '2025-03-10', location: 'Community Center', donations: 1 },
-    { id: 10, name: 'Lisa Thompson', email: 'lisa.t@example.com', bloodType: 'A+', lastDonation: '2025-02-28', location: 'Central Hospital', donations: 9 },
-  ];
+  // Fetch usernames and donation history on component mount
+  useEffect(() => {
+    const fetchUsernames = async () => {
+      setLoadingUsernames(true);
+      setErrorUsernames(null);
+      try {
+        const token = localStorage.getItem('jwt_token');
+        console.log('Fetching usernames with token:', token);
+        if (!token) {
+          throw new Error('No JWT token found. Please log in.');
+        }
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+        console.log('Usernames request headers:', headers);
+        const response = await fetch('http://localhost:8080/api/auth/users/usernames', {
+          headers: headers,
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch usernames: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        setUsernames(data);
+      } catch (error: any) {
+        console.error('Error fetching usernames:', error);
+        setErrorUsernames(error.message || 'Failed to load usernames');
+      } finally {
+        setLoadingUsernames(false);
+      }
+    };
 
-  const bloodTypes = ['All Types', 'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+    const fetchDonationHistory = async () => {
+      try {
+        const token = localStorage.getItem('jwt_token');
+        console.log('Fetching donation history with token:', token);
+        if (!token) {
+          throw new Error('No JWT token found. Please log in.');
+        }
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+        console.log('Donation history request headers:', headers);
+        const response = await fetch('http://localhost:8081/api/donations/history', {
+          headers: headers,
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+          throw new Error(`Failed to fetch donation history: ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        setDonations(data);
+      } catch (error: any) {
+        console.error('Error fetching donation history:', error);
+        setErrorMessage(error.message || 'Failed to load donation history');
+        setDonations([]);
+      }
+    };
 
-  const filteredDonors = donors.filter(donor => {
-    const matchesSearch = donor.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         donor.email.toLowerCase().includes(searchQuery.toLowerCase());
-                         
-    const matchesBloodType = selectedBloodType === '' || 
-                           selectedBloodType === 'All Types' || 
-                           donor.bloodType === selectedBloodType;
-                           
-    return matchesSearch && matchesBloodType;
+    fetchUsernames();
+    fetchDonationHistory();
+  }, []);
+
+  // Handle form submission to add a new donation
+  const handleAddDonation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    try {
+      const token = localStorage.getItem('jwt_token');
+      console.log('Adding donation with token:', token);
+      if (!token) {
+        throw new Error('No JWT token found. Please log in.');
+      }
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+      console.log('Add donation request headers:', headers, 'Data:', {
+        ...newDonation,
+        recipientId: 'center1',
+      });
+      const response = await fetch('http://localhost:8081/api/donations', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          ...newDonation,
+          recipientId: 'center1',
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        throw new Error(`Failed to add donation: ${response.status} - ${errorText}`);
+      }
+      const savedDonation = await response.json();
+      setDonations([...donations, savedDonation]);
+      setShowAddForm(false);
+      setNewDonation({ recipientType: 'bloodcenter', recipientName: '', volume: 0, location: '' });
+    } catch (error: any) {
+      console.error('Error adding donation:', error);
+      setErrorMessage(error.message || 'Failed to add donation');
+    }
+  };
+
+  // Filter donations based on search query and recipient type
+  const filteredDonations = donations.filter(donation => {
+    const matchesSearch = donation.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         donation.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRecipientType = selectedRecipientType === '' ||
+                                 selectedRecipientType === 'All Types' ||
+                                 donation.recipientType === selectedRecipientType;
+    return matchesSearch && matchesRecipientType;
   });
 
   return (
@@ -40,16 +154,104 @@ const Donors: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Donors</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage registered blood donors</p>
+          <h1 className="text-2xl font-semibold text-gray-900">Donation History</h1>
+          <p className="mt-1 text-sm text-gray-500">View your donation history</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Button className="flex items-center">
-            <UserPlus size={16} className="mr-2" />
-            <span>Add New Donor</span>
+          <Button className="flex items-center" onClick={() => setShowAddForm(true)}>
+            <PlusCircle size={16} className="mr-2" />
+            <span>Add New Donation</span>
           </Button>
         </div>
       </div>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{errorMessage}</span>
+        </div>
+      )}
+
+      {/* Add Donation Form */}
+      {showAddForm && (
+        <Card>
+          <CardBody>
+            <form onSubmit={handleAddDonation} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Recipient Type</label>
+                  <select
+                    value={newDonation.recipientType}
+                    onChange={(e) => setNewDonation({ ...newDonation, recipientType: e.target.value })}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="bloodcenter">Blood Center</option>
+                    <option value="user">User</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Recipient Name</label>
+                  {loadingUsernames ? (
+                    <div className="mt-1 text-sm text-gray-500">Loading usernames...</div>
+                  ) : errorUsernames ? (
+                    <div className="mt-1 text-sm text-error-500">{errorUsernames}</div>
+                  ) : (
+                    <select
+                      value={newDonation.recipientName}
+                      onChange={(e) => setNewDonation({ ...newDonation, recipientName: e.target.value })}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      required
+                    >
+                      <option value="">Select a recipient</option>
+                      {usernames.map((username) => (
+                        <option key={username} value={username}>
+                          {username}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Volume (mL)</label>
+                  <Input
+                    type="number"
+                    value={newDonation.volume}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNewDonation({
+                        ...newDonation,
+                        volume: value === '' ? 0 : isNaN(parseInt(value)) ? newDonation.volume : parseInt(value),
+                      });
+                    }}
+                    placeholder="e.g., 450"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <Input
+                    type="text"
+                    value={newDonation.location}
+                    onChange={(e) => setNewDonation({ ...newDonation, location: e.target.value })}
+                    placeholder="e.g., City Hospital"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" className="flex items-center">
+                  <PlusCircle size={16} className="mr-2" />
+                  <span>Submit Donation</span>
+                </Button>
+                <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Filters and Search */}
       <Card>
@@ -58,35 +260,29 @@ const Donors: React.FC = () => {
             <div className="flex-1 relative">
               <Input
                 type="text"
-                placeholder="Search donors..."
+                placeholder="Search donations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
               <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
-
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="w-full sm:w-40">
                 <select
-                  value={selectedBloodType}
-                  onChange={(e) => setSelectedBloodType(e.target.value)}
+                  value={selectedRecipientType}
+                  onChange={(e) => setSelectedRecipientType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 >
-                  <option value="">All Blood Types</option>
-                  {bloodTypes.slice(1).map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
+                  <option value="">All Recipient Types</option>
+                  <option value="bloodcenter">Blood Center</option>
+                  <option value="user">User</option>
                 </select>
               </div>
-
               <Button variant="outline" className="flex items-center">
                 <Filter size={16} className="mr-2" />
                 <span>More Filters</span>
               </Button>
-
               <Button variant="outline" className="flex items-center">
                 <Download size={16} className="mr-2" />
                 <span>Export</span>
@@ -96,70 +292,58 @@ const Donors: React.FC = () => {
         </CardBody>
       </Card>
 
-      {/* Donors Table */}
+      {/* Donation History Table */}
       <Card>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
+                  Donation ID
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
+                  Recipient Type
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Blood Type
+                  Recipient Name
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Donation
+                  Volume (mL)
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Donation Date
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Location
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Donations
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  Points Earned
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDonors.map((donor) => (
-                <tr key={donor.id}>
+              {filteredDonations.map((donation) => (
+                <tr key={donation.donationId}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{donor.name}</div>
+                    <div className="font-medium text-gray-900">{donation.donationId}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    {donor.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-primary-100 text-primary-800">
-                      {donor.bloodType}
-                    </span>
+                    {donation.recipientType}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    {donor.lastDonation}
+                    {donation.recipientName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    {donor.location}
+                    {donation.volume}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                    {donation.donationDate}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                    {donation.location}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-gray-900">{donor.donations}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-secondary-600 hover:text-secondary-900">
-                        <Eye size={18} />
-                      </button>
-                      <button className="text-primary-600 hover:text-primary-900">
-                        <Edit size={18} />
-                      </button>
-                      <button className="text-error-500 hover:text-error-700">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    <div className="text-gray-900">{donation.pointsEarned}</div>
                   </td>
                 </tr>
               ))}
@@ -170,9 +354,8 @@ const Donors: React.FC = () => {
         {/* Pagination */}
         <div className="px-6 py-4 bg-white border-t border-gray-200 flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            Showing <span className="font-medium">{filteredDonors.length}</span> of <span className="font-medium">{donors.length}</span> donors
+            Showing <span className="font-medium">{filteredDonations.length}</span> of <span className="font-medium">{donations.length}</span> donations
           </div>
-          
           <div className="flex space-x-2">
             <Button variant="outline" size="sm" disabled className="px-4">
               Previous
@@ -196,4 +379,4 @@ const Donors: React.FC = () => {
   );
 };
 
-export default Donors;
+export default DonationHistory;

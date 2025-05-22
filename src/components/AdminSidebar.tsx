@@ -8,8 +8,10 @@ import {
   LogOut, 
   X,
   Droplet, 
-  MapPin
+  MapPin,
+  UserCog
 } from 'lucide-react';
+
 interface AdminSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -24,6 +26,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'Appointments', icon: <Calendar size={20} />, path: '/admin/appointments' },
     { name: 'Add Event', icon: <PlusCircle size={20} />, path: '/admin/add-event' },
     { name: 'Centers Map', icon: <MapPin size={20} />, path: '/admin/AddCenters' },
+    { name: 'User Management', icon: <UserCog size={20} />, path: '/admin/users' },
   ];
   
   const isActive = (path: string) => {

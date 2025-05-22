@@ -12,7 +12,8 @@ import Dashboard from './pages/admin/Dashboard';
 import Donors from './pages/admin/Donors';
 import Appointments from './pages/admin/Appointments';
 import AddEvent from './pages/admin/AddEvent';
-import  CentersMap from './pages/admin/AddCenters';
+import CentersMap from './pages/admin/AddCenters';
+import Users from './pages/admin/Users';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="appointments" element={<Appointments />} />
         <Route path="add-event" element={<AddEvent />} />
         <Route path="AddCenters" element={<CentersMap />} />
+        <Route path="users" element={<Users />} />
       </Route>
     </Routes>
   );

@@ -23,10 +23,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen }) => {
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin' },
     { name: 'Donors', icon: <Users size={20} />, path: '/admin/donors' },
-    { name: 'Appointments', icon: <Calendar size={20} />, path: '/admin/appointments' },
     { name: 'Add Event', icon: <PlusCircle size={20} />, path: '/admin/add-event' },
     { name: 'Centers Map', icon: <MapPin size={20} />, path: '/admin/AddCenters' },
     { name: 'User Management', icon: <UserCog size={20} />, path: '/admin/users' },
+    { name: 'User Tracking', icon: <UserCog size={20} />, path: '/admin/userTracking' }
   ];
   
   const isActive = (path: string) => {

@@ -14,6 +14,7 @@ import Appointments from './pages/admin/Appointments';
 import AddEvent from './pages/admin/AddEvent';
 import CentersMap from './pages/admin/AddCenters';
 import Users from './pages/admin/Users';
+import UsersTracking from './pages/admin/UserTracking';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="add-event" element={<AddEvent />} />
         <Route path="AddCenters" element={<CentersMap />} />
         <Route path="users" element={<Users />} />
+        <Route path="userTracking" element={<UsersTracking />} />
       </Route>
     </Routes>
   );

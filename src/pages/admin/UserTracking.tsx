@@ -240,14 +240,7 @@ const CentersMap = () => {
               setSelectedCenter({ ...selectedCenter, longitude: parseFloat(e.target.value) })
             }
           />
-          <h4>id Admin </h4>
-          <input
-            type="number"
-            value={selectedCenter.idadmin}
-            onChange={(e) =>
-              setSelectedCenter({ ...selectedCenter, idadmin: parseInt(e.target.value) })
-            }
-          />
+          
           <button onClick={handleUpdateCenter}>Update</button>
           <button onClick={() => handleDeleteCenter(selectedCenter.id)}>Delete</button>
         </div>

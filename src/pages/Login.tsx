@@ -91,7 +91,7 @@ const Login: React.FC = () => {
       }
 
       localStorage.setItem('jwt_token', data.token);
-      navigate('/admin');
+      navigate('/admin/donors');
     } catch (err) {
       setError( 'navigation to admin failed,Something went wrong. Please try again.');
     } finally {

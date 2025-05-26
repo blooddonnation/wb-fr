@@ -150,13 +150,8 @@ const CentersMap = () => {
             value={formData.nameCenter}
             onChange={(e) => setFormData({ ...formData, nameCenter: e.target.value })}
           />
-          <h4>Id</h4>
-          <input
-            placeholder="Admin ID"
-            type="number"
-            value={formData.idadmin}
-            onChange={(e) => setFormData({ ...formData, idadmin: +e.target.value })}
-          />
+         
+          
           <button onClick={handleAddCenter}>Add Center</button>
         </div>
       )}

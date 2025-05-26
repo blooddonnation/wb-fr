@@ -21,7 +21,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   
   const navItems = [
-    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/admin' },
+  
     { name: 'Donors', icon: <Users size={20} />, path: '/admin/donors' },
     { name: 'Add Event', icon: <PlusCircle size={20} />, path: '/admin/add-event' },
     { name: 'Centers Map', icon: <MapPin size={20} />, path: '/admin/AddCenters' },
@@ -31,7 +31,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, setIsOpen }) => {
   
   const isActive = (path: string) => {
     if (path === '/admin') {
-      return location.pathname === '/admin';
+      return location.pathname === '/admin/donors';
     }
     return location.pathname.startsWith(path);
   };
